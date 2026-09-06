@@ -54,6 +54,31 @@ export const constantRoutes: RouteRecordRaw[] = [
     ],
   },
 
+  {
+    path: "/card-warehouse",
+    name: "CardWarehouse",
+    component: Layout,
+    redirect: "/card-warehouse/card-archive",
+    meta: {
+      title: "卡牌仓库管理",
+      icon: "folder",
+      alwaysShow: true,
+    },
+    children: [
+      {
+        path: "card-archive",
+        name: "CardArchive",
+        component: () =>
+          import("@/views/cardWarehouse/cardArchive/index.vue"),
+        meta: {
+          title: "一卡一档",
+          icon: "document",
+          keepAlive: true,
+        },
+      },
+    ],
+  },
+
   // {
   //   path: "/curd",
   //   component: Layout,

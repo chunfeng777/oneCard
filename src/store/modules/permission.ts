@@ -71,7 +71,26 @@ export const usePermissionStore = defineStore("permission", () => {
 
   // actions
   function setRoutes(newRoutes: RouteRecordRaw[]) {
-    routes.value = constantRoutes.concat(newRoutes);
+    const cardWarehouseRoute = constantRoutes.find(
+      (route) => route.path === "/card-warehouse"
+    );
+    const mergedRoutes = constantRoutes
+      .filter((route) => route.path !== "/card-warehouse")
+      .concat(newRoutes);
+
+    if (cardWarehouseRoute) {
+      const netdiscRouteIndex = mergedRoutes.findIndex(
+        (route) =>
+          route.path === "/netdisc" ||
+          route.meta?.title === "netdisc" ||
+          route.meta?.title === "企业网盘"
+      );
+      const insertIndex =
+        netdiscRouteIndex >= 0 ? netdiscRouteIndex + 1 : mergedRoutes.length;
+      mergedRoutes.splice(insertIndex, 0, cardWarehouseRoute);
+    }
+
+    routes.value = mergedRoutes;
   }
 
   /**
