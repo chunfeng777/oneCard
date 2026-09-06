@@ -423,26 +423,59 @@
             title="开箱录像至少保存1年；证书截图、订单截图、转账记录建议保存1至2年。"
           />
           <el-row :gutter="20">
-            <el-col :xs="24" :md="12">
+            <!-- 开箱录像 (支持点击选择或拖入本地文件) -->
+            <el-col :span="24">
               <el-form-item label="开箱录像">
-                <el-input
-                  v-model="formData.unboxingVideoUrl"
-                  placeholder="视频OSS链接"
-                >
-                  <template #append>
-                    <el-upload
-                      action="#"
-                      accept="video/*"
-                      :auto-upload="false"
-                      :show-file-list="false"
-                      :on-change="(file) => handleFileUpload(file, 'unboxingVideoUrl')"
+                <div class="video-field">
+                  <el-upload
+                    class="video-uploader"
+                    action="#"
+                    accept="video/*"
+                    drag
+                    :auto-upload="false"
+                    :show-file-list="false"
+                    :on-change="(file) => handleFileUpload(file, 'unboxingVideoUrl')"
+                  >
+                    <div v-if="formData.unboxingVideoUrl" class="video-preview-wrap">
+                      <video
+                        class="video-player"
+                        :src="formData.unboxingVideoUrl"
+                        controls
+                        @click.stop
+                      />
+                      <span class="video-tip">点击或拖拽本地视频文件替换</span>
+                    </div>
+                    <div v-else class="video-placeholder">
+                      <el-icon class="el-icon--upload" style="font-size: 38px; color: var(--el-color-primary); margin-bottom: 8px;">
+                        <i-ep-upload-filled />
+                      </el-icon>
+                      <div class="el-upload__text">
+                        将视频文件拖到此处，或 <em>点击选择本地视频</em>
+                      </div>
+                      <div class="el-upload__tip">
+                        支持 MP4、WebM、MOV 等格式，选择或拖入后自动上传至服务器
+                      </div>
+                    </div>
+                  </el-upload>
+                  <div v-if="formData.unboxingVideoUrl" class="video-actions">
+                    <el-input
+                      v-model="formData.unboxingVideoUrl"
+                      placeholder="视频链接"
+                      style="flex: 1"
+                    />
+                    <el-button
+                      link
+                      type="danger"
+                      @click="formData.unboxingVideoUrl = ''"
                     >
-                      <el-button type="primary">上传视频</el-button>
-                    </el-upload>
-                  </template>
-                </el-input>
+                      移除视频
+                    </el-button>
+                  </div>
+                </div>
               </el-form-item>
             </el-col>
+
+            <!-- 图片留痕 (支持点击选择或拖入本地文件) -->
             <el-col
               v-for="item in imageEvidenceFields"
               :key="item.key"
@@ -455,6 +488,7 @@
                     class="evidence-uploader"
                     action="#"
                     accept="image/*"
+                    drag
                     :auto-upload="false"
                     :show-file-list="false"
                     :on-change="(file) => handleFileUpload(file, item.key)"
@@ -468,11 +502,14 @@
                         fit="cover"
                         @click.stop
                       />
-                      <span>点击更换图片</span>
+                      <span>点击或拖拽更换图片</span>
                     </div>
                     <div v-else class="evidence-placeholder">
-                      <strong>选择图片</strong>
-                      <span>点击选择图片并自动上传至服务器</span>
+                      <el-icon class="el-icon--upload" style="font-size: 28px; color: var(--el-color-primary); margin-bottom: 4px;">
+                        <i-ep-upload-filled />
+                      </el-icon>
+                      <strong>选择或拖入图片</strong>
+                      <span>支持 JPG、PNG、WebP，单张不超过10MB</span>
                     </div>
                   </el-upload>
                   <el-button
@@ -486,8 +523,9 @@
                 </div>
               </el-form-item>
             </el-col>
+
             <el-col :xs="24" :md="12">
-              <el-form-item label="快递单号">
+              <el-form-item label="物流单号">
                 <el-input
                   v-model="formData.trackingNo"
                   placeholder="快递单号"
@@ -512,7 +550,6 @@
 
       <template #footer>
         <el-button @click="formDialog.visible = false">取消</el-button>
-
         <el-button type="primary" :loading="submitting" @click="submitForm">保存</el-button>
       </template>
     </el-dialog>
@@ -585,14 +622,13 @@
             </span>
           </el-descriptions-item>
           <el-descriptions-item label="开箱录像" :span="2">
-            <a
-              v-if="detailRecord.unboxingVideoUrl"
-              :href="detailRecord.unboxingVideoUrl"
-              target="_blank"
-              class="video-link"
-            >
-              点击播放/下载视频
-            </a>
+            <div v-if="detailRecord.unboxingVideoUrl" class="detail-video-wrap">
+              <video
+                class="detail-video-player"
+                :src="detailRecord.unboxingVideoUrl"
+                controls
+              />
+            </div>
             <span v-else>未上传</span>
           </el-descriptions-item>
           <el-descriptions-item
@@ -848,7 +884,7 @@ async function handleDelete(record: CardInventoryPageVO) {
   }
 }
 
-// 附件上传处理 (自动调用后端接口)
+// 附件上传处理 (支持视频/图片，自动调用后端接口上传)
 async function handleFileUpload(
   uploadFile: UploadFile,
   key: keyof CardInventoryForm
@@ -1080,6 +1116,88 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+/* 视频拖拽上传区样式 */
+.video-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.video-uploader {
+  width: 100%;
+
+  :deep(.el-upload) {
+    width: 100%;
+  }
+
+  :deep(.el-upload-dragger) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 16px;
+    background: var(--el-fill-color-lighter);
+    border: 1px dashed var(--el-border-color);
+    border-radius: 8px;
+
+    &:hover {
+      border-color: var(--el-color-primary);
+    }
+  }
+}
+
+.video-preview-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+
+  .video-player {
+    width: 100%;
+    max-height: 240px;
+    background: #000;
+    border-radius: 6px;
+  }
+
+  .video-tip {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+.video-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+
+  .el-upload__text {
+    font-size: 14px;
+    color: var(--el-text-color-regular);
+
+    em {
+      font-style: normal;
+      color: var(--el-color-primary);
+    }
+  }
+
+  .el-upload__tip {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+}
+
+.video-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* 图片拖拽上传区样式 */
 .image-field {
   display: flex;
   flex-direction: column;
@@ -1093,23 +1211,36 @@ onMounted(() => {
   :deep(.el-upload) {
     width: 100%;
   }
+
+  :deep(.el-upload-dragger) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 160px;
+    padding: 0;
+    background: var(--el-fill-color-lighter);
+    border: 1px dashed var(--el-border-color);
+    border-radius: 8px;
+
+    &:hover {
+      border-color: var(--el-color-primary);
+    }
+  }
 }
 
 .evidence-placeholder {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 140px;
+  height: 100%;
   color: var(--el-text-color-secondary);
-  cursor: pointer;
-  background: var(--el-fill-color-lighter);
-  border: 1px dashed var(--el-border-color);
-  border-radius: 8px;
 
   strong {
+    font-size: 13px;
     color: var(--el-color-primary);
   }
 
@@ -1121,10 +1252,8 @@ onMounted(() => {
 .evidence-preview {
   position: relative;
   width: 100%;
-  height: 180px;
+  height: 160px;
   overflow: hidden;
-  cursor: pointer;
-  border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
 
   .el-image {
@@ -1139,7 +1268,7 @@ onMounted(() => {
     padding: 4px 8px;
     font-size: 12px;
     color: #fff;
-    background: rgb(0 0 0 / 55%);
+    background: rgb(0 0 0 / 60%);
     border-radius: 4px;
   }
 }
@@ -1152,9 +1281,16 @@ onMounted(() => {
   border-radius: 6px;
 }
 
-.video-link {
-  color: var(--el-color-primary);
-  text-decoration: underline;
+.detail-video-wrap {
+  width: 100%;
+  max-width: 480px;
+
+  .detail-video-player {
+    width: 100%;
+    max-height: 260px;
+    background: #000;
+    border-radius: 6px;
+  }
 }
 
 @media (width <= 767px) {
