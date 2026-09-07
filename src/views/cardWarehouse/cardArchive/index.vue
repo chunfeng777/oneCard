@@ -237,11 +237,10 @@
               <el-form-item label="采购日期">
                 <el-date-picker
                   v-model="formData.purchaseDate"
-                  type="datetime"
-                  format="YYYY-MM-DD HH:mm:ss"
-                  value-format="YYYY-MM-DDTHH:mm:ss"
-                  :default-time="defaultTime"
-                  placeholder="选择采购日期与时间"
+                  type="date"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
+                  placeholder="选择采购日期"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -343,11 +342,10 @@
               <el-form-item label="入库日期">
                 <el-date-picker
                   v-model="formData.inboundDate"
-                  type="datetime"
-                  format="YYYY-MM-DD HH:mm:ss"
-                  value-format="YYYY-MM-DDTHH:mm:ss"
-                  :default-time="defaultTime"
-                  placeholder="选择入库日期与时间"
+                  type="date"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
+                  placeholder="选择入库日期"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -384,10 +382,9 @@
               <el-form-item label="售出日期">
                 <el-date-picker
                   v-model="formData.saleDate"
-                  type="datetime"
-                  format="YYYY-MM-DD HH:mm:ss"
-                  value-format="YYYY-MM-DDTHH:mm:ss"
-                  :default-time="defaultTime"
+                  type="date"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
                   placeholder="未售出可留空"
                   style="width: 100%"
                 />
@@ -743,18 +740,42 @@ const query = reactive<CardInventoryQuery>({
 const formRef = ref();
 const formDialog = reactive({ visible: false, title: "" });
 
-// 默认时间
-const defaultTime = ref(new Date());
-
-function getCurrentDateTimeString() {
+function getCurrentDateString() {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const seconds = String(now.getSeconds()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  return `${year}-${month}-${day}`;
+}
+
+function formatToIsoDateTime(dateStr?: string) {
+  if (!dateStr) return dateStr;
+  const trimmed = dateStr.trim();
+  if (!trimmed) return "";
+  if (trimmed.includes("T")) return trimmed;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return `${trimmed}T00:00:00`;
+  }
+  return trimmed;
+}
+
+function formatToDateOnly(dateStr?: string) {
+  if (!dateStr) return "";
+  return dateStr.slice(0, 10);
+}
+
+function normalizeFormForSubmit(form: CardInventoryForm): CardInventoryForm {
+  const submitData = { ...form };
+  if (submitData.purchaseDate) {
+    submitData.purchaseDate = formatToIsoDateTime(submitData.purchaseDate);
+  }
+  if (submitData.inboundDate) {
+    submitData.inboundDate = formatToIsoDateTime(submitData.inboundDate);
+  }
+  if (submitData.saleDate) {
+    submitData.saleDate = formatToIsoDateTime(submitData.saleDate);
+  }
+  return submitData;
 }
 
 const createEmptyForm = (): CardInventoryForm => ({
@@ -764,7 +785,7 @@ const createEmptyForm = (): CardInventoryForm => ({
   cardDesc: "",
   psaGrade: undefined,
   certVerifyStatus: "",
-  purchaseDate: getCurrentDateTimeString(),
+  purchaseDate: getCurrentDateString(),
   purchaseChannel: undefined,
   sourceStore: "",
   purchasePrice: undefined,
@@ -772,7 +793,7 @@ const createEmptyForm = (): CardInventoryForm => ({
   priceRatio: undefined,
   amountTier: "",
   bossConfirmStatus: undefined,
-  inboundDate: getCurrentDateTimeString(),
+  inboundDate: getCurrentDateString(),
   inventoryStatus: undefined,
   inventoryAgeDays: "",
   saleDate: "",
@@ -836,16 +857,21 @@ async function openEditDialog(record: CardInventoryPageVO) {
   formDialog.visible = true;
   nextTick(() => formRef.value?.clearValidate());
 
+  let targetData: CardInventoryForm = { ...record };
   if (record.id) {
     try {
       const res: any = await CardInventoryAPI.getFormData(record.id);
-      Object.assign(formData, res || record);
+      if (res) targetData = { ...res };
     } catch {
-      Object.assign(formData, record);
+      // fallback
     }
-  } else {
-    Object.assign(formData, record);
   }
+
+  targetData.purchaseDate = formatToDateOnly(targetData.purchaseDate);
+  targetData.inboundDate = formatToDateOnly(targetData.inboundDate);
+  targetData.saleDate = formatToDateOnly(targetData.saleDate);
+
+  Object.assign(formData, targetData);
 }
 
 async function openDetail(record: CardInventoryPageVO) {
@@ -867,12 +893,13 @@ async function submitForm() {
   if (!valid) return;
 
   submitting.value = true;
+  const payload = normalizeFormForSubmit(formData);
   try {
-    if (formData.id) {
-      await CardInventoryAPI.update(formData.id, formData);
+    if (payload.id) {
+      await CardInventoryAPI.update(payload.id, payload);
       ElMessage.success("档案修改成功");
     } else {
-      await CardInventoryAPI.add(formData);
+      await CardInventoryAPI.add(payload);
       ElMessage.success("档案新增成功");
     }
     formDialog.visible = false;
