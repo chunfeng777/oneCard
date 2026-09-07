@@ -110,16 +110,6 @@
             {{ formatCurrency(row.purchasePrice) }}
           </template>
         </el-table-column>
-        <el-table-column label="市场均价" width="120" align="right">
-          <template #default="{ row }">
-            {{ formatCurrency(row.marketAvgPrice) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="价格比" width="100" align="right">
-          <template #default="{ row }">
-            {{ formatPriceRatio(row) }}
-          </template>
-        </el-table-column>
         <el-table-column label="入库状态" width="110">
           <template #default="{ row }">
             <el-tag :type="getInventoryStatusType(row.inventoryStatus)">
@@ -280,30 +270,6 @@
                   placeholder="含运费总价"
                   style="width: 100%"
                   @change="syncAmountTier"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :md="12">
-              <el-form-item label="市场均价(¥)">
-                <el-input-number
-                  v-model="formData.marketAvgPrice"
-                  :min="0"
-                  :precision="2"
-                  :controls="false"
-                  placeholder="至少2个数据源交叉验证"
-                  style="width: 100%"
-                  @change="calcPriceRatio"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :xs="24" :md="12">
-              <el-form-item label="价格比(%)">
-                <el-input-number
-                  v-model="formData.priceRatio"
-                  :precision="2"
-                  :controls="false"
-                  placeholder="如 120.5"
-                  style="width: 100%"
                 />
               </el-form-item>
             </el-col>
@@ -592,12 +558,6 @@
           <el-descriptions-item label="成交价格">
             {{ formatCurrency(detailRecord.purchasePrice) }}
           </el-descriptions-item>
-          <el-descriptions-item label="市场均价">
-            {{ formatCurrency(detailRecord.marketAvgPrice) }}
-          </el-descriptions-item>
-          <el-descriptions-item label="价格比">
-            {{ formatPriceRatio(detailRecord) }}
-          </el-descriptions-item>
           <el-descriptions-item label="单笔金额分级">
             {{ detailRecord.amountTier || "-" }}
           </el-descriptions-item>
@@ -705,6 +665,7 @@ const bossConfirmOptions = [
 ];
 
 const psaGradeOptions = [
+  { label: "未评级", value: -1 },
   { label: "PSA 10", value: 10 },
   { label: "PSA 9", value: 9 },
   { label: "PSA 8", value: 8 },
@@ -814,7 +775,6 @@ const detailVisible = ref(false);
 const detailRecord = ref<CardInventoryForm>();
 
 const formRules = {
-  psaCertNo: [{ required: true, message: "请输入PSA证书号", trigger: "blur" }],
   cardName: [{ required: true, message: "请输入卡名", trigger: "blur" }],
 };
 
@@ -1013,10 +973,11 @@ function getProfitClass(profit?: number) {
 
 function formatPsaGrade(grade?: number | string) {
   if (grade === undefined || grade === null) return "-";
-  if (typeof grade === "number") {
-    return grade === 0 ? "其他" : `PSA ${grade}`;
-  }
-  return grade;
+  const num = Number(grade);
+  if (num === -1) return "未评级";
+  if (num === 0) return "其他";
+  if (!isNaN(num) && num > 0) return `PSA ${num}`;
+  return String(grade);
 }
 
 function formatPurchaseChannel(channel?: number | string) {
