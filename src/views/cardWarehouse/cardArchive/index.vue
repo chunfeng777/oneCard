@@ -239,7 +239,7 @@
                   v-model="formData.purchaseDate"
                   type="datetime"
                   format="YYYY-MM-DD HH:mm:ss"
-                  value-format="YYYY-MM-DD HH:mm:ss"
+                  value-format="YYYY-MM-DDTHH:mm:ss"
                   :default-time="defaultTime"
                   placeholder="选择采购日期与时间"
                   style="width: 100%"
@@ -345,7 +345,7 @@
                   v-model="formData.inboundDate"
                   type="datetime"
                   format="YYYY-MM-DD HH:mm:ss"
-                  value-format="YYYY-MM-DD HH:mm:ss"
+                  value-format="YYYY-MM-DDTHH:mm:ss"
                   :default-time="defaultTime"
                   placeholder="选择入库日期与时间"
                   style="width: 100%"
@@ -386,7 +386,7 @@
                   v-model="formData.saleDate"
                   type="datetime"
                   format="YYYY-MM-DD HH:mm:ss"
-                  value-format="YYYY-MM-DD HH:mm:ss"
+                  value-format="YYYY-MM-DDTHH:mm:ss"
                   :default-time="defaultTime"
                   placeholder="未售出可留空"
                   style="width: 100%"
@@ -754,7 +754,7 @@ function getCurrentDateTimeString() {
   const hours = String(now.getHours()).padStart(2, "0");
   const minutes = String(now.getMinutes()).padStart(2, "0");
   const seconds = String(now.getSeconds()).padStart(2, "0");
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 }
 
 const createEmptyForm = (): CardInventoryForm => ({
